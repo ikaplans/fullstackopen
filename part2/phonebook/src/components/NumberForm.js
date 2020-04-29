@@ -1,18 +1,26 @@
 import React, { useState } from "react";
-const NumberForm = ({ persons, addPerson }) => {
+const NumberForm = ({ persons, addPerson, updatePerson }) => {
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
 
-  const addName = (event) => {
+  const onAddPerson = (event) => {
+    const newId = Math.max(...persons.map((x) => x.id)) + 1;
     event.preventDefault();
     if (!newName) {
       return;
     }
-    if (persons.map((x) => x.name).includes(newName)) {
-      alert(`${newName} is already added to phonebook`);
-      return;
+    const existingPerson = persons.find((x) => x.name === newName);
+    if (existingPerson !== undefined) {
+      if (
+        window.confirm(
+          `${existingPerson.name} is already added to phonebook, replace the old number with a new one?`
+        )
+      ) {
+        updatePerson(Object.assign({}, existingPerson, { number: newPhone }));
+      }
+    } else {
+      addPerson({ name: newName, number: newPhone, id: newId });
     }
-    addPerson({ name: newName, number: newPhone });
     setNewName("");
     setNewPhone("");
   };
@@ -28,7 +36,7 @@ const NumberForm = ({ persons, addPerson }) => {
   return (
     <>
       <h2>Add a new</h2>
-      <form onSubmit={addName}>
+      <form onSubmit={onAddPerson}>
         <div>
           <div>
             name: <input value={newName} onChange={handleNewNameChange} />
