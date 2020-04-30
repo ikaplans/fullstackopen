@@ -3,37 +3,86 @@ import NumberForm from "./NumberForm";
 import NumberFilter from "./NumberFilter";
 import NumberDirectory from "./NumberDirectory";
 import personService from "../service/Persons";
+import Notification from "./Notification";
+import "../index.css";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [textFilter, setTextFilter] = useState("");
-  const addPerson = (newPerson) => {
-    setPersons(persons.concat(newPerson));
-    personService.create(newPerson).catch((error) => {
-      alert("Error adding a new person");
-      setPersons(persons.filter((x) => x.id !== newPerson.id));
-    });
+  const [notificationMessage, setNotificationMessage] = useState();
+
+  const showNotificationMessage = (message, isSuccess) => {
+    setNotificationMessage({ isSuccess: isSuccess, text: message });
+    setTimeout(() => {
+      setNotificationMessage(null);
+    }, 5000);
   };
+
+  const addPerson = (newPerson) => {
+    let success = true;
+    const newPersons = persons.concat(newPerson);
+    setPersons(newPersons);
+    personService.create(newPerson).catch((error) => {
+      success = false;
+      showNotificationMessage(
+        `Encountered an error while adding ${newPerson.name}`,
+        false
+      );
+      setPersons(newPersons.filter((x) => x.id !== newPerson.id));
+    });
+    if (success) {
+      showNotificationMessage(`Successfully added ${newPerson.name}`, true);
+    }
+  };
+
   const updatePerson = (person) => {
+    let success = true;
     const originalData = Object.assign(
       {},
       persons.find((x) => x.id === person.id)
     );
-    setPersons([...persons.map((x) => (x.id === person.id ? person : x))]);
+    const newPersons = [
+      ...persons.map((x) => (x.id === person.id ? person : x)),
+    ];
+    setPersons(newPersons);
     personService.update(person).catch((error) => {
-      alert("Error updating a new person");
+      success = false;
+      showNotificationMessage(
+        `Encountered an error while updating ${person.name}`,
+        false
+      );
       setPersons([
-        ...persons.map((x) => (x.id === person.id ? originalData : x)),
+        ...newPersons.map((x) => (x.id === person.id ? originalData : x)),
       ]);
     });
-  };
-  const applyFilter = (filterText) => {
-    setTextFilter(filterText);
+    if (success) {
+      showNotificationMessage(`Successfully updated ${person.name}`, true);
+    }
   };
 
   const deletePerson = (person) => {
-    setPersons(persons.filter((x) => x.id !== person.id));
-    personService.remove(person);
+    let success = true;
+    const originalData = Object.assign(
+      {},
+      persons.find((x) => x.id === person.id)
+    );
+    const newPersons = persons.filter((x) => x.id !== person.id);
+    setPersons(newPersons);
+    personService.remove(person).catch((error) => {
+      success = false;
+      showNotificationMessage(
+        `Encountered an error while deleting ${person.name}`,
+        false
+      );
+      setPersons(newPersons.concat(originalData));
+    });
+    if (success) {
+      showNotificationMessage(`Successfully deleted ${person.name}`, true);
+    }
+  };
+
+  const applyFilter = (filterText) => {
+    setTextFilter(filterText);
   };
 
   useEffect(() => {
@@ -45,6 +94,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage} />
       <NumberFilter applyFilter={applyFilter} />
       <NumberForm
         persons={persons}
